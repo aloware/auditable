@@ -1,0 +1,25 @@
+# OS indexing files
+.DS_Store
+.thumbs.db
+
+# Buildable dependencies files
+/vendor/
+/node_modules/
+npm-debug.log
+yarn-error.log
+
+# Editor directories and files
+.idea
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+.env
+.env.testing
+.vscode/
+.idea
+.vagrant
+.phpintel
+.phpstorm.meta.php
+_ide_helper.php
+_ide_helper_models.php
