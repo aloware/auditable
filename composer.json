@@ -8,9 +8,6 @@
     },
     "license": "Proprietary",
     "autoload": {
-        "classmap": [
-            "database/migrations"
-        ],
         "psr-4": {
             "Aloware\\Auditable\\": "src/"
         }
