@@ -4,12 +4,12 @@
     "type": "library",
     "require": {
         "php": "^8.1 || ^8.2",
-        "laravel/framework": "^9 || ^10.0 || ^11.0"
+        "illuminate/support": "^9|^10|^11"
     },
     "license": "Proprietary",
     "autoload": {
         "classmap": [
-            "src/migrations"
+            "database/migrations"
         ],
         "psr-4": {
             "Aloware\\Auditable\\": "src/"
@@ -24,9 +24,36 @@
     "extra": {
         "laravel": {
             "providers": [
-                "Aloware\\Auditable\\Providers\\ServiceProvider"
+                "Aloware\\Auditable\\ServiceProvider"
             ]
         }
     },
-    "minimum-stability": "stable"
+    "minimum-stability": "stable",
+    "require-dev": {
+        "orchestra/testbench": "^9.0"
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Workbench\\App\\": "workbench/app/",
+            "Workbench\\Database\\Factories\\": "workbench/database/factories/",
+            "Workbench\\Database\\Seeders\\": "workbench/database/seeders/"
+        }
+    },
+    "scripts": {
+        "post-autoload-dump": [
+            "@clear",
+            "@prepare"
+        ],
+        "clear": "@php vendor/bin/testbench package:purge-skeleton --ansi",
+        "prepare": "@php vendor/bin/testbench package:discover --ansi",
+        "build": "@php vendor/bin/testbench workbench:build --ansi",
+        "serve": [
+            "Composer\\Config::disableProcessTimeout",
+            "@build",
+            "@php vendor/bin/testbench serve"
+        ],
+        "lint": [
+            "@php vendor/bin/phpstan analyse"
+        ]
+    }
 }
