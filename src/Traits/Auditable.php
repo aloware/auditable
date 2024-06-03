@@ -8,6 +8,8 @@ use Exception;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
+use Throwable;
 
 trait Auditable
 {
@@ -19,15 +21,15 @@ trait Auditable
     public static function bootAuditable(): void
     {
         static::created(
-            fn (Model $model) => $model->createSelfAudit(EventType::MODEL_CREATED)
+            fn (Model $model) => self::selfAudit($model, EventType::MODEL_CREATED)
         );
 
         static::updated(
-            fn ($model) => $model->createSelfAudit(EventType::MODEL_UPDATED)
+            fn (Model $model) => self::selfAudit($model, EventType::MODEL_UPDATED)
         );
 
         static::deleted(
-            fn ($model) => $model->createSelfAudit(EventType::MODEL_DELETED)
+            fn (Model $model) => self::selfAudit($model, EventType::MODEL_DELETED)
         );
     }
 
@@ -54,26 +56,35 @@ trait Auditable
         return $this->auditable ?? array_keys($this->getAttributes());
     }
 
-    public function auditRelation(EventType $event_type, Model $related, string $label = 'relation-audit'): Audit
+    public function auditRelation(EventType $event_type, Model $related, string $label = 'relation-audit'): ?Audit
     {
         if (!in_array($event_type, [EventType::RELATION_CREATED, EventType::RELATION_UPDATED, EventType::RELATION_DELETED])) {
             throw new Exception('Invalid Relation Event for Audit');
         }
 
-        $changes = $this->createAuditableChangesList($event_type, $related);
+        try {
+            $changes = $this->createAuditableChangesList($event_type, $related);
 
-        return $this->audits()->create([
-            'event_type' => $event_type,
-            'related_type' => get_class($related),
-            'related_id' => $related->getKey(),
-            'changes' => $changes,
-            'label' => $label,
-            'index' => array_keys($changes),
-            'user_id' => Auth::user()?->getKey(),
-        ]);
+            return $this->audits()->create([
+                'event_type' => $event_type,
+                'related_type' => get_class($related),
+                'related_id' => $related->getKey(),
+                'changes' => $changes,
+                'label' => $label,
+                'index' => array_keys($changes),
+                'user_id' => Auth::user()?->getKey(),
+            ]);
+        } catch (Throwable $e) {
+            Log::error('[Auditable] Audit failed: ' . $e->getMessage(), [
+                'model' => get_class($this),
+                'model_id' => $this->getKey(),
+                'event_type' => $event_type->value,
+                'exception' => $e,
+            ]);
+        }
     }
 
-    public function audit(string $property, $before, $after, string $label = 'custom-audit', bool $property_must_exist = true): Audit
+    public function audit(string $property, $before, $after, string $label = 'custom-audit', bool $property_must_exist = true): ?Audit
     {
         if ($property_must_exist && !array_key_exists($property, $this->getAttributes())) {
             throw new Exception(
@@ -95,15 +106,24 @@ trait Auditable
         }
     }
 
-    private function createAudit(EventType $event_type, array $changes, ?string $label = null): Audit
+    private function createAudit(EventType $event_type, array $changes, ?string $label = null): ?Audit
     {
-        return $this->audits()->create([
-            'event_type' => $event_type,
-            'changes' => $changes,
-            'label' => $label,
-            'index' => array_keys($changes),
-            'user_id' => Auth::user()?->getKey(),
-        ]);
+        try {
+            return $this->audits()->create([
+                'event_type' => $event_type,
+                'changes' => $changes,
+                'label' => $label,
+                'index' => array_keys($changes),
+                'user_id' => Auth::user()?->getKey(),
+            ]);
+        } catch (Throwable $e) {
+            Log::error('[Auditable] Audit failed: ' . $e->getMessage(), [
+                'model' => get_class($this),
+                'model_id' => $this->getKey(),
+                'event_type' => $event_type->value,
+                'exception' => $e,
+            ]);
+        }
     }
 
     /**
@@ -159,5 +179,19 @@ trait Auditable
     private function ignoreTouchEvent(): bool
     {
         return !($this->auditTouch ?? config('auditable.audit_touch'));
+    }
+
+    private static function selfAudit(Model $model, EventType $event_type): void
+    {
+        try {
+            $model->createSelfAudit($event_type);
+        } catch (Throwable $e) {
+            Log::error('[Auditable] Audit failed: ' . $e->getMessage(), [
+                'model' => get_class($model),
+                'model_id' => $model->getKey(),
+                'event_type' => $event_type->value,
+                'exception' => $e,
+            ]);
+        }
     }
 }
