@@ -79,7 +79,7 @@ The default configuration should be enough for standard Laravel applications. If
  *
  * Example:
  *
- *   'models' => ['role' => App\Models\Role]
+ *   'models' => ['role' => App\Models\Role::class]
  *
  * The `model_alias` passed to the `audits-table` default Vue component would be `role` and the endpoint to
  * fetch the Role Model's audits would be `://your.site/{route_prefix}/audits/role/{role_id}`
@@ -87,6 +87,7 @@ The default configuration should be enough for standard Laravel applications. If
 'models' => [
     'role' => App\Models\Role::class,
 ],
+```
 
 ### The Audit Model
 
@@ -127,29 +128,29 @@ the package's default UI, which already handles interpreting the field's format.
 
 The Auditable Trait exposes the following API:
 
-- Auditable@audits(): MorphMany
+- `Auditable@audits(): MorphMany`
   - This is the polymorphic relation allowing to retrieve a Model's audits from the Model
   - Example: Role::first()->audits // Returns a list of Audit instances for the Role Model
 
-- Auditable@auditableAttributes(): array
+- `Auditable@auditableAttributes(): array`
   - By default, all of the Model's attributes are auditable
   - You may customize which attributes should be audited, in one of two possible ways:
     - Create a property `auditable` in the Model, which is an array of attribute names
     - Or, if you need more control or there is logic required to define what's auditable:
       - Override this method in your Model to restrict audits to only certain attributes
-      - The overridden methods must also return an array of attribute names to be audited
+      - The overridden method must also return an array of attribute names to be audited
 
-- Auditable@auditRelation(EventType $event_type, Model $related, string $label = 'relation-audit'): ?Audit
+- `Auditable@auditRelation(EventType $event_type, Model $related, string $label = 'relation-audit'): ?Audit`
   - Use one of the `RELATION_*` Event Types from the Enum `\Aloware\Auditable\Enums\EventType`
-  - Self-audits only cover the Model's attributes. In case of relations where the Foreign Key leaves in another table,
-    audits will not happen automatically. Instead, we use this method to record them.
+  - Self-audits only cover the Model's attributes. In case of relations where the Foreign Key lives in another table,
+    audits will not happen automatically. Instead, use this method to record them.
   - The `$related` argument takes the related Model, in the state we want it to be recorded (its attributes will be
     persisted in the newly created Audit)
   - The label is optional; if omitted, it'll default to 'relation-audit'
-  - The method will return a new Audit instance on success, or null on failure (the failure will be logged)
+  - The method will return a new Audit instance on success, or null on failure (the failure will be logged).
 
-- Auditable@audit(string $property, $before, $after, string $label = 'custom-audit', bool $property_must_exist = true): ?Audit
-  - You may use this method for custom audits, i.e. audits which are not automatically generated
+- `Auditable@audit(string $property, $before, $after, string $label = 'custom-audit', bool $property_must_exist = true): ?Audit`
+  - You may use this method for custom audits
     - Example: $role->audit('accessed', null, 2, 'access-control', false)
     - The generated Audit will look as if an attribute called 'accessed' had changed from `null` to `2`
     - Notice that yo need to pass `false` for `$property_must_exist` if you are using a `$property` name
@@ -157,3 +158,57 @@ The Auditable Trait exposes the following API:
   - This may be helpful to audit attributes that you excluded from the `auditableProperties` in order to handle them on
     a one-by-one basis
   - The method will return a new Audit instance on success, or null on failure (the failure will be logged)
+
+### Examples
+
+```php
+/**
+ * Audit a relation created between a Line and an IncomingNumber, as a Line Audit.
+ *
+ * That is, the new Audit will belong to the Line instance, and in the changes attribute
+ * it'll store a snapshot of the IncomingNumber's attributes.
+ *
+ * The label will be 'add_number' (allowing easy filtering both in queries and UI logic).
+ */
+Line::find(1)->auditRelation(
+    EventType::RELATION_CREATED,
+    IncomingNumber::find(1337),
+    label: 'add_number'
+);
+```
+
+```php
+/**
+ * Audit a relation removed from a Line to an IncomingNumber, as a Line Audit.
+ *
+ * That is, the new Audit will belong to the Line instance, and in the changes attribute
+ * it'll store a snapshot of the IncomingNumber's attributes.
+ *
+ * The label will be 'relation-audit' (the default, since no custom label was provided).
+ */
+Line::find(1)->auditRelation(
+    EventType::RELATION_DELETED,
+    IncomingNumber::find(1337),
+    label: 'add_number'
+);
+```
+
+
+```php
+/**
+ * Audit a custom attribute Audit on a Line, called 'my-custom-property' (not a real attribute).
+ *
+ * The change attribute of the new Audit will look like ['my-custom-property' => [1, 2]].
+ * The type of the Audit will be EventType::CUSTOM_EVENT (string "custom_event")
+ * The label will be 'my-custom-audit'.
+ *
+ * Notice that we need the argument 'property_must_exist' to be false if this is not a real attribute.
+ */
+Line::find(1)->auditRelation(
+    'my-custom-property',
+    1,
+    2
+    label: 'my-custom-audit',
+    property_must_exist: false
+);
+```
