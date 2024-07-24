@@ -2,7 +2,6 @@
 
 namespace Aloware\Auditable\Controllers;
 
-use Aloware\Auditable\Models\Audit;
 use Exception;
 use Illuminate\Http\Request;
 

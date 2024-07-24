@@ -10,7 +10,7 @@ return [
      * Route middleware for auditable endpoints.
      */
     'route_middleware' => [
-        'api',
+        'auth:api',
     ],
 
     /**
