@@ -21,6 +21,13 @@
                 <date-selector>
                 </date-selector>
             </div>
+            <div class="col-md-4">
+                <select @change="onActionFilterChange($event)">
+                    <option v-for="(action, index) in action_filters" :key="index" :value="generateOptionValue(action.filter)">
+                        {{ action.name }}
+                    </option>
+                </select>
+            </div>
         </div>
 
         <el-table
@@ -169,9 +176,13 @@ export default {
             required: true
         },
         action_label_resolver: {
-            type: Function,
-            required: false
-        }
+            type:     Function,
+            required: false,
+        },
+        action_filters:        {
+            type:     Array,
+            required: true,
+        },
     },
 
     computed:{
@@ -209,6 +220,11 @@ export default {
     },
 
     methods: {
+        generateOptionValue(filter) {
+            return Object.entries(filter)
+                .map(([key, value]) => `${key}:${value}`)
+                .join('|');
+        },
         actionLabels(audit) {
             if (this.action_label_resolver) {
                 return this.action_label_resolver(audit);
