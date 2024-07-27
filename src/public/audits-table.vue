@@ -11,6 +11,18 @@
             </div>
         </div>
 
+        <div class="row mb-3">
+            <div class="col-md-4">
+                <user-selector :ignore_focus_mode="true"
+                               @change="onFilterChange">
+                </user-selector>
+            </div>
+            <div class="col-md-4">
+                <date-selector>
+                </date-selector>
+            </div>
+        </div>
+
         <el-table
             class="w-full mt-3"
             v-loading="loading"
@@ -145,6 +157,8 @@
 </template>
 
 <script>
+import DateSelector from "../../../../../resources/assets/user/components/date-selector.vue";
+import {mapGetters} from "vuex";
 export default {
     props: {
         model_alias: {
@@ -160,6 +174,16 @@ export default {
         }
     },
 
+    computed:{
+      ...mapGetters({
+        filter_options: 'getFilter'
+      }),
+    },
+
+    components: {
+      DateSelector
+    },
+
     data() {
         return {
             loading: false,
@@ -169,7 +193,11 @@ export default {
             table_height: 769,
             extra_height: 0,
             source: null,
-            filter: {}
+            filter: {
+                user_id: '',
+                from: '',
+                to: '',
+            }
         }
     },
 
@@ -199,7 +227,7 @@ export default {
             this.pagination_loading = true
 
             return axios.get(url, {
-                // params: this.filter,
+                params: this.filter,
                 cancelToken: this.source.token
             }).then(res => {
                 this.items = res.data.data
@@ -256,6 +284,28 @@ export default {
 
             this.table_height += this.extra_height
         },
+
+        onFilterChange(id) {
+            this.filter.user_id=id
+
+            this.getAudits()
+        },
+
+    },
+
+    watch: {
+        'filter_options.from_date': function (data) {
+            this.filter.from=data
+
+            this.getAudits()
+        },
+
+        'filter_options.to_date': function (data) {
+            this.filter.to=data
+
+            this.getAudits()
+        },
+
     }
 }
 </script>
