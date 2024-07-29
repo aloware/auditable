@@ -221,8 +221,12 @@ export default {
         },
         action_filters:        {
             type:     Array,
-            required: true,
+            required: true
         },
+        text_configs:  {
+            type:     Array,
+            required: true
+        }
     },
 
     computed:{
@@ -290,14 +294,17 @@ export default {
             }
             this.getAudits();
         },
+
         generateOptionValue(filter) {
             return Object.entries(filter)
                 .map(([key, value]) => `${key}:${value}`)
                 .join('|');
         },
+
         actionLabels(audit) {
-            if (this.action_label_resolver) {
-                return this.action_label_resolver(audit);
+            if (this.text_configs) {
+
+                return this.actionLabelResolver(audit);
             }
 
             return [audit.event_type + ' - ' + audit.label];
@@ -369,6 +376,106 @@ export default {
             }
 
             this.table_height += this.extra_height
+        },
+
+        actionLabelResolver(audit) {
+            let labels;
+            // Remove text added to soft-deleted numbers (e.g. +123456_deleted_987654321 > +123456)
+            if (audit.changes.phone_number) {
+              audit.changes.phone_number = audit.changes.phone_number.replace(/(\+?\d+).*/, '$1');
+            }
+
+            if (audit.related?.phone_number) {
+              audit.related.phone_number = audit.related.phone_number.replace(/(\+?\d+).*/, '$1');
+            }
+
+            // Case 1. Action Label can be fully defined by the Audit's label alone
+            if (labels = this.actionLabelFromAuditLabel(audit)) {
+              return labels;
+            }
+
+            // Case 2. Action Label can be fully defined by the Audit's Event Type alone
+            if (labels = this.actionLabelFromEventType(audit)) {
+              return labels;
+            }
+
+            // Case 3. Action Labels needs to be defined by a combination of several data (creating potentially a multi-line label)
+            if (labels = this.actionLabelFromAuditChanges(audit)) {
+              return labels;
+            }
+        },
+
+        actionLabelFromAuditLabel(audit){
+            const searchKey='label'
+            const result=this.text_configs.find(item => item.match[searchKey]=== audit.label)
+            if(result)
+              return [result]
+        },
+
+        actionLabelFromEventType(audit){
+            const searchKey='event_type'
+            let interpreted=''
+            const result=this.text_configs.find(item => item.match[searchKey] === audit.event_type)
+            if(result){
+                interpreted={
+                  ...result,
+                  text:this.replaceVariables(result.text, {audit})
+                }
+
+                return [interpreted];
+            }
+        },
+
+        replaceVariables(text, context) {
+            return text.replace(/\$\{([^}]+)\}/g, (match, expr) => {
+                try {
+
+                  return this.evaluateExpression(expr, context);
+                } catch (e) {
+                  console.error('Error evaluating expression:', expr, e);
+
+                  return match;
+                }
+            });
+        },
+
+        evaluateExpression(expr, context) {
+
+            return new Function('context', `with (context) {return ${expr};}`)(context);
+        },
+
+        actionLabelFromAuditChanges(audit) {
+            const actions = []
+
+            for (const [attribute, change] of Object.entries(audit.changes)) {
+              const label = this.actionLabelFromAuditChange(attribute, change,audit)
+
+              label && actions.push(label)
+            }
+            if(!actions.length==0)
+                return actions
+        },
+
+        actionLabelFromAuditChange(attribute, change,audit) {
+
+            let searchKey='attribute'
+            let result=this.text_configs.find(item => item.match[searchKey] === attribute)
+            let interpreted=''
+            if(result){
+                interpreted={
+                  ...result,
+                  text:this.replaceVariables(result.text, {audit,change,attribute})
+                }
+
+                return interpreted
+            }else{
+                searchKey='event_type_generic'
+                result=this.text_configs.find(item => item.match[searchKey] === audit.event_type)
+                if(result) {
+
+                    return result
+                }
+            }
         },
 
         onFilterChange(id) {
