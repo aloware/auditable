@@ -6,28 +6,40 @@
                         id="cnam_caller_id">
                 </span>
                 <h2 class="mb-2"><slot></slot></h2>
-
-                <span>Total Logs: {{ this.pagination.total }}</span>
             </div>
         </div>
 
-        <div class="row mb-3">
-            <div class="col-md-4">
-                <user-selector :ignore_focus_mode="true"
-                               @change="onFilterChange">
-                </user-selector>
-            </div>
-            <div class="col-md-4">
-                <date-selector>
-                </date-selector>
-            </div>
-            <div class="col-md-4">
-                <select @change="onActionFilterChange($event)">
-                    <option v-for="(action, index) in action_filters" :key="index" :value="generateOptionValue(action.filter)">
-                        {{ action.name }}
-                    </option>
-                </select>
-            </div>
+        <div class="row mb-11 grey-background">
+                <div class="col-md-3">
+                    <user-selector
+                        :ignore_focus_mode="true" placeholder="Search Agent" @change="onFilterChange"
+                    ></user-selector>
+                </div>
+                <div class="col-md-3">
+                    <el-select
+                        v-model="type_filter"
+                        :ignore_focus_mode="true"
+                        class="no-select"
+                        placeholder="Select an Event Type"
+                        filterable
+                        data-testid="action-filter-dropdown"
+                        clearable
+                        @change="onActionFilterChange($event)"
+                    >
+                        <el-option
+                            v-for="(action, index) in action_filters"
+                            :key="index"
+                            :value="generateOptionValue(action.filter)"
+                            :label="action.name"
+                        ></el-option>
+                    </el-select>
+                </div>
+                <div class="col-md-3">
+                    <date-selector class="filter-select-audits" :disable_default_report_period="true"></date-selector>
+                </div>
+                <div class="col-md-2 total-log">
+                    <span>Total Logs: <b>{{ this.pagination.total }}</b></span>
+                </div>
         </div>
 
         <el-table
@@ -133,28 +145,28 @@
                                v-if="!pagination.prev_page_url || pagination_loading || loading"
                                disabled
                                plain>
-                        Previous Page
+
                     </el-button>
                     <el-button type="success"
                                size="small"
                                icon="el-icon-arrow-left"
                                v-else
                                @click="previousPage">
-                        Previous Page
+
                     </el-button>
 
                     <el-button size="small"
                                v-if="!pagination.next_page_url || pagination_loading || loading"
                                disabled
                                plain>
-                        Next Page
+
                         <i class="el-icon-arrow-right"></i>
                     </el-button>
                     <el-button type="success"
                                size="small"
                                v-else
                                @click="nextPage">
-                        Next Page
+
                         <i class="el-icon-arrow-right"></i>
                     </el-button>
                 </el-button-group>
@@ -162,7 +174,35 @@
         </div>
     </div>
 </template>
+<style scoped>
+.filter-select-audits {
+    border: 1px solid #DCDFE6 !important;
+    width: 100%;
+    max-width: 400px !important;
+}
 
+.filter-select-audits div {
+    max-width: 400px !important;
+}
+
+.el-select {
+    display: inline;
+}
+
+.total-log {
+    padding: 10px;
+    font-size: 15px;
+}
+
+.filter-header {
+    background-color: #F6F6F6;
+}
+.grey-background {
+    background-color: #F6F6F6;
+    padding: 20px;
+    border-top:3px solid #E6E6E6;
+}
+</style>
 <script>
 import DateSelector from "../../../../../resources/assets/user/components/date-selector.vue";
 import {mapGetters} from "vuex";
@@ -208,7 +248,9 @@ export default {
                 user_id: '',
                 from: '',
                 to: '',
-            }
+            },
+            type_filter: '',
+            default_date_range: null,
         }
     },
 
@@ -220,6 +262,34 @@ export default {
     },
 
     methods: {
+        onActionFilterChange(selectedFilter) {
+            const allowedKeys = ['label', 'attribute', 'relation'];
+            const selectEventType = {};
+
+            const filterPairs = selectedFilter.split('|');
+
+            filterPairs.forEach(pair => {
+                const [key, value] = pair.split(':');
+                if (allowedKeys.includes(key)) {
+                    selectEventType[key] = value;
+                }
+            });
+
+            allowedKeys.forEach(key => {
+                if (this.filter.hasOwnProperty(key)) {
+                    this.$delete(this.filter, key);
+                }
+            });
+
+            Object.keys(selectEventType).forEach(key => {
+                this.$set(this.filter, key, selectEventType[key]);
+            });
+
+            if (this.loading) {
+                return;
+            }
+            this.getAudits();
+        },
         generateOptionValue(filter) {
             return Object.entries(filter)
                 .map(([key, value]) => `${key}:${value}`)
@@ -318,7 +388,6 @@ export default {
 
         'filter_options.to_date': function (data) {
             this.filter.to=data
-
             this.getAudits()
         },
 
