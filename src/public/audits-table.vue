@@ -34,8 +34,9 @@
             ></el-option>
           </el-select>
         </div>
+
         <div class="col-md-3">
-          <date-selector class="filter-select-audits" :disable_default_report_period="true"></date-selector>
+          <slot name="date-selector"></slot>
         </div>
         <div class="col-md-2 total-log">
           <span>Total Logs: <b>{{ this.pagination.total }}</b></span>
@@ -227,7 +228,6 @@
 }
 </style>
 <script>
-import DateSelector from "../../../../../resources/assets/user/components/date-selector.vue";
 import {mapGetters} from "vuex";
 import * as icons from "./icons"
 export default {
@@ -253,10 +253,6 @@ export default {
       ...mapGetters({
         filter_options: 'getFilter'
       }),
-    },
-
-    components: {
-      DateSelector
     },
 
     data() {
