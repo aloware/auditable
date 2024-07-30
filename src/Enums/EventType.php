@@ -18,4 +18,21 @@ enum EventType: string
     {
         return array_column(self::cases(), 'value');
     }
+
+    public static function strToEventType(string $value): ?self
+    {
+        $value = strtolower($value);
+
+        return match ($value) {
+            'model_created' => self::MODEL_CREATED,
+            'model_updated' => self::MODEL_UPDATED,
+            'model_deleted' => self::MODEL_DELETED,
+            'relation_created' => self::RELATION_CREATED,
+            'relation_updated' => self::RELATION_UPDATED,
+            'relation_deleted' => self::RELATION_DELETED,
+            'custom_event' => self::CUSTOM_EVENT,
+
+            default => null,
+        };
+    }
 }

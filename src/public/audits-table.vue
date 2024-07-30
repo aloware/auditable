@@ -9,10 +9,10 @@
             </div>
         </div>
 
-        <div class="row mb-11 grey-background">
+      <div class="row mb-11 grey-background">
         <div class="col-md-3">
           <user-selector
-              :ignore_focus_mode="true" placeholder="Search Agent" @change="onFilterChange"
+              :ignore_focus_mode="true" placeholder="Search Agent" @change="onUserFilterChange"
           ></user-selector>
         </div>
         <div class="col-md-3">
@@ -196,7 +196,7 @@
 
 .current_page {
     display: inline;
-    padding: 0px 10px;
+    padding: 0 10px;
 }
 
 .button-group {
@@ -211,9 +211,6 @@
     font-size: 15px;
 }
 
-.filter-header {
-    background-color: #F6F6F6;
-}
 .grey-background {
     background-color: #F6F6F6;
     padding: 20px;
@@ -284,7 +281,7 @@ export default {
 
     methods: {
         onActionFilterChange(selectedFilter) {
-            const allowedKeys = ['label', 'attribute', 'relation'];
+            const allowedKeys = ['label', 'attribute', 'type', 'relation'];
             const selectEventType = {};
 
             const filterPairs = selectedFilter.split('|');
@@ -493,7 +490,7 @@ export default {
           return new Function('context', `with (context) {return ${expr};}`)(context);
         },
 
-        onFilterChange(id) {
+        onUserFilterChange(id) {
             this.filter.user_id=id
 
             this.getAudits()
