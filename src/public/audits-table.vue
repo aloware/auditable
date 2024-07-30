@@ -10,37 +10,75 @@
         </div>
 
         <div class="row mb-11 grey-background">
-                <div class="col-md-3">
-                    <user-selector
-                        :ignore_focus_mode="true" placeholder="Search Agent" @change="onFilterChange"
-                    ></user-selector>
-                </div>
-                <div class="col-md-3">
-                    <el-select
-                        v-model="type_filter"
-                        :ignore_focus_mode="true"
-                        class="no-select"
-                        placeholder="Select an Event Type"
-                        filterable
-                        data-testid="action-filter-dropdown"
-                        clearable
-                        @change="onActionFilterChange($event)"
-                    >
-                        <el-option
-                            v-for="(action, index) in action_filters"
-                            :key="index"
-                            :value="generateOptionValue(action.filter)"
-                            :label="action.name"
-                        ></el-option>
-                    </el-select>
-                </div>
-                <div class="col-md-3">
-                    <date-selector class="filter-select-audits" :disable_default_report_period="true"></date-selector>
-                </div>
-                <div class="col-md-2 total-log">
-                    <span>Total Logs: <b>{{ this.pagination.total }}</b></span>
-                </div>
+        <div class="col-md-3">
+          <user-selector
+              :ignore_focus_mode="true" placeholder="Search Agent" @change="onFilterChange"
+          ></user-selector>
         </div>
+        <div class="col-md-3">
+          <el-select
+              v-model="type_filter"
+              :ignore_focus_mode="true"
+              class="no-select"
+              placeholder="Select an Event Type"
+              filterable
+              data-testid="action-filter-dropdown"
+              clearable
+              @change="onActionFilterChange($event)"
+          >
+            <el-option
+                v-for="(action, index) in action_filters"
+                :key="index"
+                :value="generateOptionValue(action.filter)"
+                :label="action.name"
+            ></el-option>
+          </el-select>
+        </div>
+        <div class="col-md-3">
+          <date-selector class="filter-select-audits" :disable_default_report_period="true"></date-selector>
+        </div>
+        <div class="col-md-2 total-log">
+          <span>Total Logs: <b>{{ this.pagination.total }}</b></span>
+        </div>
+        <div class="row ">
+          <div class="col-12">
+            <el-button-group class="button-group">
+              <el-button type="text"
+                         size="medium"
+                         icon="el-icon-arrow-left"
+                         v-if="!pagination.prev_page_url || pagination_loading || loading"
+                         disabled>
+
+              </el-button>
+              <el-button type="text"
+                         size="medium"
+                         icon="el-icon-arrow-left"
+                         v-else
+                         @click="previousPage"
+              >
+
+              </el-button>
+              <div class="current_page">
+                {{ pagination.current_page }}
+              </div>
+              <el-button type="text"
+                         size="medium"
+                         v-if="!pagination.next_page_url || pagination_loading || loading"
+                         disabled>
+
+                <i class="el-icon-arrow-right"></i>
+              </el-button>
+              <el-button type="text"
+                         size="medium"
+                         v-else
+                         @click="nextPage">
+
+                <i class="el-icon-arrow-right"></i>
+              </el-button>
+            </el-button-group>
+          </div>
+        </div>
+      </div>
 
         <el-table
             class="w-full mt-3"
@@ -111,13 +149,14 @@
                 label="Action"
                 min-width="600">
                 <template v-slot="scope">
-                    <div v-for="(label, index) in actionLabels(scope.row)" :key="index">
-                        <hr v-if="index > 0" />
-                        <el-tooltip class="item" effect="dark" :content="label.icon">
-                            <i class="material-icons">{{ label.icon }}</i>
-                        </el-tooltip>
-                        <span v-html="label.text"></span>
-                    </div>
+                  <div v-for="(label, index) in actionLabels(scope.row)" :key="index" class="truncate">
+                    <hr v-if="index > 0"/>
+                    <img :src="icons[label.icon]" :alt="label.icon"/>
+                    <el-tooltip effect="dark" placement="top">
+                      <template v-slot:content><span v-html="label.text"></span></template>
+                      <span v-html="label.text"></span>
+                    </el-tooltip>
+                  </div>
                 </template>
             </el-table-column>
 
@@ -137,41 +176,6 @@
             </template>
         </el-table>
 
-        <div class="row mt-3">
-            <div class="col-12">
-                <el-button-group class="pull-right">
-                    <el-button size="small"
-                               icon="el-icon-arrow-left"
-                               v-if="!pagination.prev_page_url || pagination_loading || loading"
-                               disabled
-                               plain>
-
-                    </el-button>
-                    <el-button type="success"
-                               size="small"
-                               icon="el-icon-arrow-left"
-                               v-else
-                               @click="previousPage">
-
-                    </el-button>
-
-                    <el-button size="small"
-                               v-if="!pagination.next_page_url || pagination_loading || loading"
-                               disabled
-                               plain>
-
-                        <i class="el-icon-arrow-right"></i>
-                    </el-button>
-                    <el-button type="success"
-                               size="small"
-                               v-else
-                               @click="nextPage">
-
-                        <i class="el-icon-arrow-right"></i>
-                    </el-button>
-                </el-button-group>
-            </div>
-        </div>
     </div>
 </template>
 <style scoped>
@@ -189,6 +193,18 @@
     display: inline;
 }
 
+.current_page {
+    display: inline;
+    padding: 0px 10px;
+}
+
+.button-group {
+    display: flex;
+    text-align: center;
+    align-items: center;
+    justify-content: space-between;
+}
+
 .total-log {
     padding: 10px;
     font-size: 15px;
@@ -201,11 +217,19 @@
     background-color: #F6F6F6;
     padding: 20px;
     border-top:3px solid #E6E6E6;
+    align-items: center;
+}
+
+.truncate {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 </style>
 <script>
 import DateSelector from "../../../../../resources/assets/user/components/date-selector.vue";
 import {mapGetters} from "vuex";
+import * as icons from "./icons"
 export default {
     props: {
         model_alias: {
@@ -214,10 +238,6 @@ export default {
         },
         model_id: {
             required: true
-        },
-        action_label_resolver: {
-            type:     Function,
-            required: false,
         },
         action_filters:        {
             type:     Array,
@@ -255,6 +275,7 @@ export default {
             },
             type_filter: '',
             default_date_range: null,
+            icons
         }
     },
 
@@ -299,15 +320,6 @@ export default {
             return Object.entries(filter)
                 .map(([key, value]) => `${key}:${value}`)
                 .join('|');
-        },
-
-        actionLabels(audit) {
-            if (this.text_configs) {
-
-                return this.actionLabelResolver(audit);
-            }
-
-            return [audit.event_type + ' - ' + audit.label];
         },
 
         getAudits(url = null) {
@@ -378,6 +390,14 @@ export default {
             this.table_height += this.extra_height
         },
 
+        actionLabels(audit) {
+          if (this.text_configs) {
+            return this.actionLabelResolver(audit);
+          }
+
+          return [audit.event_type + ' - ' + audit.label];
+        },
+
         actionLabelResolver(audit) {
             let labels;
             // Remove text added to soft-deleted numbers (e.g. +123456_deleted_987654321 > +123456)
@@ -405,77 +425,76 @@ export default {
             }
         },
 
-        actionLabelFromAuditLabel(audit){
-            const searchKey='label'
-            const result=this.text_configs.find(item => item.match[searchKey]=== audit.label)
-            if(result)
-              return [result]
-        },
-
-        actionLabelFromEventType(audit){
-            const searchKey='event_type'
-            let interpreted=''
-            const result=this.text_configs.find(item => item.match[searchKey] === audit.event_type)
-            if(result){
-                interpreted={
-                  ...result,
-                  text:this.replaceVariables(result.text, {audit})
-                }
-
-                return [interpreted];
+        actionLabelFromAuditLabel(audit) {
+          const searchKey = 'label'
+          const result = this.text_configs.find(item => item.match[searchKey] === audit.label)
+          let interpreted
+          if (result) {
+            interpreted = {
+              ...result,
+              text: this.evaluateExpression(result.text, {audit})
             }
+
+            return [interpreted]
+          }
         },
 
-        replaceVariables(text, context) {
-            return text.replace(/\$\{([^}]+)\}/g, (match, expr) => {
-                try {
+        actionLabelFromEventType(audit) {
+          const searchKey = 'event_type'
+          let interpreted
+          const result = this.text_configs.find(item => item.match[searchKey] === audit.event_type)
+          if (result) {
+            interpreted = {
+              ...result,
+              text: this.evaluateExpression(result.text, {audit})
+            }
 
-                  return this.evaluateExpression(expr, context);
-                } catch (e) {
-                  console.error('Error evaluating expression:', expr, e);
+            return [interpreted];
+          }
+        },
 
-                  return match;
-                }
-            });
+
+        actionLabelFromAuditChanges(audit) {
+          const actions = []
+
+          for (const [attribute, change] of Object.entries(audit.changes)) {
+            const label = this.actionLabelFromAuditChange(attribute, change, audit)
+
+            label && actions.push(label)
+          }
+          if (!actions.length == 0) {
+            return actions
+          }
+        },
+
+        actionLabelFromAuditChange(attribute, change, audit) {
+          let searchKey = 'attribute'
+          let result = this.text_configs.find(item => item.match[searchKey] === attribute)
+          let interpreted
+          if (result) {
+            interpreted = {
+              ...result,
+              text: this.evaluateExpression(result.text, {audit, change, attribute})
+            }
+
+            return interpreted
+          } else {
+            searchKey = 'event_type_generic'
+            result = this.text_configs.find(item => item.match[searchKey] === audit.event_type)
+            if (result) {
+              interpreted = {
+                ...result,
+                text: this.evaluateExpression(result.text, {audit, change, attribute})
+              }
+
+              return interpreted
+            }
+          }
         },
 
         evaluateExpression(expr, context) {
 
-            return new Function('context', `with (context) {return ${expr};}`)(context);
-        },
-
-        actionLabelFromAuditChanges(audit) {
-            const actions = []
-
-            for (const [attribute, change] of Object.entries(audit.changes)) {
-              const label = this.actionLabelFromAuditChange(attribute, change,audit)
-
-              label && actions.push(label)
-            }
-            if(!actions.length==0)
-                return actions
-        },
-
-        actionLabelFromAuditChange(attribute, change,audit) {
-
-            let searchKey='attribute'
-            let result=this.text_configs.find(item => item.match[searchKey] === attribute)
-            let interpreted=''
-            if(result){
-                interpreted={
-                  ...result,
-                  text:this.replaceVariables(result.text, {audit,change,attribute})
-                }
-
-                return interpreted
-            }else{
-                searchKey='event_type_generic'
-                result=this.text_configs.find(item => item.match[searchKey] === audit.event_type)
-                if(result) {
-
-                    return result
-                }
-            }
+          return new Function('context', `with (context) {return ${expr};}`)(context);
         },
 
         onFilterChange(id) {
