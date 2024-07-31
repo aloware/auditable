@@ -19,7 +19,7 @@ enum EventType: string
         return array_column(self::cases(), 'value');
     }
 
-    public static function strToEventType(string $value): ?self
+    public static function strToEventType(string $value): ?EventType
     {
         $value = strtolower($value);
 

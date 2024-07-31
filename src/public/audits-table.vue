@@ -11,9 +11,7 @@
 
       <div class="row mb-11 grey-background">
         <div class="col-md-3">
-          <user-selector
-              :ignore_focus_mode="true" placeholder="Search Agent" @change="onUserFilterChange"
-          ></user-selector>
+          <slot name="user-selector" :onUserFilterChange="onUserFilterChange"></slot>
         </div>
         <div class="col-md-3">
           <el-select
@@ -225,7 +223,6 @@
 }
 </style>
 <script>
-import {mapGetters} from "vuex";
 import * as icons from "./icons"
 export default {
     props: {
@@ -243,13 +240,10 @@ export default {
         text_configs:  {
             type:     Array,
             required: true
+        },
+        filter_options: {
+            required: true
         }
-    },
-
-    computed:{
-      ...mapGetters({
-        filter_options: 'getFilter'
-      }),
     },
 
     data() {
@@ -267,7 +261,6 @@ export default {
                 to: '',
             },
             type_filter: '',
-            default_date_range: null,
             icons
         }
     },
