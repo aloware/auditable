@@ -214,6 +214,7 @@
     padding: 20px;
     border-top:3px solid #E6E6E6;
     align-items: center;
+    margin-top: 10px;
 }
 
 .truncate {
@@ -261,7 +262,7 @@ export default {
                 to: '',
             },
             type_filter: '',
-            icons
+            icons,
         }
     },
 
