@@ -138,6 +138,9 @@
                                         </el-tooltip>
                                     </router-link>
                                 </div>
+                                <div class="col-12 d-flex align-items-center justify-content-left" v-else>
+                                    <b>No user</b>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -275,38 +278,38 @@ export default {
 
     methods: {
         onActionFilterChange(selectedFilter) {
-            const allowedKeys = ['label', 'attribute', 'type', 'relation'];
-            const selectEventType = {};
+            const allowedKeys = ['label', 'attribute', 'type', 'relation']
+            const selectEventType = {}
 
-            const filterPairs = selectedFilter.split('|');
+            const filterPairs = selectedFilter.split('|')
 
             filterPairs.forEach(pair => {
-                const [key, value] = pair.split(':');
+                const [key, value] = pair.split(':')
                 if (allowedKeys.includes(key)) {
-                    selectEventType[key] = value;
+                    selectEventType[key] = value
                 }
-            });
+            })
 
             allowedKeys.forEach(key => {
                 if (this.filter.hasOwnProperty(key)) {
-                    this.$delete(this.filter, key);
+                    this.$delete(this.filter, key)
                 }
-            });
+            })
 
             Object.keys(selectEventType).forEach(key => {
-                this.$set(this.filter, key, selectEventType[key]);
-            });
+                this.$set(this.filter, key, selectEventType[key])
+            })
 
             if (this.loading) {
-                return;
+                return
             }
-            this.getAudits();
+            this.getAudits()
         },
 
         generateOptionValue(filter) {
             return Object.entries(filter)
                 .map(([key, value]) => `${key}:${value}`)
-                .join('|');
+                .join('|')
         },
 
         getAudits(url = null) {
@@ -379,36 +382,36 @@ export default {
 
         actionLabels(audit) {
           if (this.text_configs) {
-            return this.actionLabelResolver(audit);
+            return this.actionLabelResolver(audit)
           }
 
-          return [audit.event_type + ' - ' + audit.label];
+          return [audit.event_type + ' - ' + audit.label]
         },
 
         actionLabelResolver(audit) {
             let labels;
             // Remove text added to soft-deleted numbers (e.g. +123456_deleted_987654321 > +123456)
             if (audit.changes.phone_number) {
-              audit.changes.phone_number = audit.changes.phone_number.replace(/(\+?\d+).*/, '$1');
+              audit.changes.phone_number = audit.changes.phone_number.replace(/(\+?\d+).*/, '$1')
             }
 
             if (audit.related?.phone_number) {
-              audit.related.phone_number = audit.related.phone_number.replace(/(\+?\d+).*/, '$1');
+              audit.related.phone_number = audit.related.phone_number.replace(/(\+?\d+).*/, '$1')
             }
 
             // Case 1. Action Label can be fully defined by the Audit's label alone
             if (labels = this.actionLabelFromAuditLabel(audit)) {
-              return labels;
+              return labels
             }
 
             // Case 2. Action Label can be fully defined by the Audit's Event Type alone
             if (labels = this.actionLabelFromEventType(audit)) {
-              return labels;
+              return labels
             }
 
             // Case 3. Action Labels needs to be defined by a combination of several data (creating potentially a multi-line label)
             if (labels = this.actionLabelFromAuditChanges(audit)) {
-              return labels;
+              return labels
             }
         },
 
@@ -436,7 +439,7 @@ export default {
               text: this.evaluateExpression(result.text, {audit})
             }
 
-            return [interpreted];
+            return [interpreted]
           }
         },
 
@@ -480,8 +483,7 @@ export default {
         },
 
         evaluateExpression(expr, context) {
-
-          return new Function('context', `with (context) {return ${expr};}`)(context);
+            return new Function('context', `with (context) {return ${expr};}`)(context)
         },
 
         onUserFilterChange(id) {
