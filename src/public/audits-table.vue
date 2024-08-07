@@ -15,7 +15,7 @@
         </div>
         <div class="col-md-3">
           <el-select
-              v-model="type_filter"
+              v-model="filters.type_filter"
               :ignore_focus_mode="true"
               class="no-select"
               placeholder="Select an Event Type"
@@ -259,12 +259,12 @@ export default {
             table_height: 769,
             extra_height: 0,
             source: null,
-            filter: {
+            filters: {
                 user_id: '',
                 from: '',
                 to: '',
+                type_filter: '',
             },
-            type_filter: '',
             icons,
         }
     },
@@ -291,13 +291,13 @@ export default {
             })
 
             allowedKeys.forEach(key => {
-                if (this.filter.hasOwnProperty(key)) {
-                    this.$delete(this.filter, key)
+                if (this.filters.hasOwnProperty(key)) {
+                    this.$delete(this.filters, key)
                 }
             })
 
             Object.keys(selectEventType).forEach(key => {
-                this.$set(this.filter, key, selectEventType[key])
+                this.$set(this.filters, key, selectEventType[key])
             })
 
             if (this.loading) {
@@ -322,7 +322,7 @@ export default {
             this.pagination_loading = true
 
             return axios.get(url, {
-                params: this.filter,
+                params: this.filters,
                 cancelToken: this.source.token
             }).then(res => {
                 this.items = res.data.data
@@ -487,7 +487,7 @@ export default {
         },
 
         onUserFilterChange(id) {
-            this.filter.user_id=id
+            this.filters.user_id = id
 
             this.getAudits()
         },
@@ -496,13 +496,14 @@ export default {
 
     watch: {
         'filter_options.from_date': function (data) {
-            this.filter.from=data
+            this.filters.from = data
 
             this.getAudits()
         },
 
         'filter_options.to_date': function (data) {
-            this.filter.to=data
+            this.filters.to = data
+
             this.getAudits()
         },
 
