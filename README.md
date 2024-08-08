@@ -87,6 +87,13 @@ The default configuration should be enough for standard Laravel applications. If
 'models' => [
     'role' => App\Models\Role::class,
 ],
+ /**
+ * Attributes that will be excluded from the audit
+ *
+ */
+'excluded_attributes' => [
+    'updated_at'
+],
 ```
 
 ### The Audit Model
@@ -212,3 +219,78 @@ Line::find(1)->auditRelation(
     property_must_exist: false
 );
 ```
+
+### Audit table component
+
+The component contains an audit table, slots for user, date filters, and an event filter.
+
+Requires the following attributes:
+
+  - `action_filters`
+  
+    Event arrangement should include the event name and its related attributes for filtering.
+  
+    ```
+    actionFilters = [
+        {
+          filter: {
+             label: 'add_number',
+          },
+          name: 'Add number',
+        },
+        {
+          filter: {
+             attribute: 'default_callerid',
+             relation: 'IncomingNumber',
+             type: 'relation_updated'
+          },
+          name: 'Set / Unset Defaut Call Mask',
+        },
+    ]
+    ```
+  - `text_configs`
+  
+    Arrangement of messages with matching attributes, messages, and corresponding icons.
+  
+    ```
+    textConfigs = [
+        {
+          match: {
+              label: 'add_number'
+          },
+          text: '`Number <strong>${audit.changes.phone_number}</strong> added`',
+          icon: 'added'
+        },
+        {
+          match: {
+              event_type: 'model_created'
+          },
+          text: '`Line <strong>${audit.changes.name}</strong> was created by <strong>${audit.user?audit.user.name:\'No user\'}</strong>`',
+          icon: 'added'
+        },
+        {
+          match: {
+              attribute: 'active'
+          },
+          text: '`Line <strong>${change[1] ? \'Paused\' : \'Activated (unpaused)\'}</strong>`',
+          icon: 'edited'
+      },
+    ]
+    ```
+  
+    The icon can be
+  
+      - added
+      - deactivate
+      - defined_messages
+      - deleted
+      - description_changed
+      - edited
+      - transferred
+    
+
+  - `filter_options`  
+
+    Object containing the 'from' and 'to' parameters that are updated by the date picker
+
+ 
