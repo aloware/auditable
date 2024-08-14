@@ -27,6 +27,10 @@ class ServiceProvider extends LaravelServiceProvider
             __DIR__ . '/../config/auditable.php' => config_path('auditable.php')
         ], 'config');
 
+        $this->publishes([
+            __DIR__ . '/public' => public_path('vendor/auditable')
+        ], 'public');
+
         $this->loadRoutesFrom(
             realpath(__DIR__ . '/../routes/api.php')
         );

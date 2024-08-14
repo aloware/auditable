@@ -2,7 +2,7 @@
 
 namespace Aloware\Auditable\Controllers;
 
-use Aloware\Auditable\Models\Audit;
+use Aloware\Auditable\Enums\EventType;
 use Exception;
 use Illuminate\Http\Request;
 
@@ -35,9 +35,9 @@ class AuditController
                 'related' => fn ($q) => $q->withTrashed()->withoutGlobalScopes()
             ])
             ->when($user, fn ($query) => $query->modifiedByUser($user))
-            ->when($type, fn ($query) => $query->byType($type))
+            ->when($type, fn ($query) => $query->byType(EventType::strToEventType($type)))
             ->when($label, fn ($query) => $query->byLabel($label))
-            ->when($attribute, fn ($query) => $query->withModified($attribute))
+            ->when($attribute && is_null($relation), fn ($query) => $query->withModified($attribute))
             ->when($relation, fn ($query) => $query->withModifiedRelation($relation, $attribute))
             ->when($from, fn ($query) => $query->where('created_at', '>=', $from))
             ->when($to, fn ($query) => $query->where('created_at', '<=', $to))

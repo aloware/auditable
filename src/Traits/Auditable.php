@@ -145,10 +145,6 @@ trait Auditable
         $modified = array_intersect_key($model->getDirty(), $auditable_attributes_as_keys);
         $original = array_intersect_key($model->getRawOriginal(), $auditable_attributes_as_keys);
 
-        if ($this->eventIsTouch($modified) && $this->ignoreTouchEvent()) {
-            return [];
-        }
-
         switch ($event_type) {
             case EventType::MODEL_CREATED:
             case EventType::RELATION_CREATED:
@@ -163,17 +159,34 @@ trait Auditable
             case EventType::MODEL_UPDATED:
             case EventType::RELATION_UPDATED:
                 foreach ($modified as $attribute => $value) {
-                    $changes[$attribute] = [$original[$attribute] ?? null, $value];
+                    if ($this->shouldAuditChange($attribute, $original[$attribute], $value) &&
+                        !in_array($attribute, config('auditable.excluded_attributes', []))) {
+                        $changes[$attribute] = [$original[$attribute] ?? null, $value];
+                    }
                 }
                 break;
+        }
+
+        if ($this->eventIsTouch($changes) && $this->ignoreTouchEvent()) {
+            return [];
         }
 
         return $changes ?? [];
     }
 
-    private function eventIsTouch(array $modified): bool
+    /**
+     * Give the parent Model a chance to decide which changes to ignore.
+     *
+     * Override in the model to have fine-grained control on each specific change.
+     */
+    protected function shouldAuditChange($attribute, $old, $new): bool
     {
-        return array_keys($modified) === ['updated_at'];
+        return true;
+    }
+
+    private function eventIsTouch(array $changes): bool
+    {
+        return array_keys($changes) === ['updated_at'];
     }
 
     private function ignoreTouchEvent(): bool
