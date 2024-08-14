@@ -159,7 +159,8 @@ trait Auditable
             case EventType::MODEL_UPDATED:
             case EventType::RELATION_UPDATED:
                 foreach ($modified as $attribute => $value) {
-                    if ($this->shouldAuditChange($attribute, $original[$attribute], $value)) {
+                    if ($this->shouldAuditChange($attribute, $original[$attribute], $value) &&
+                        !in_array($attribute, config('auditable.excluded_attributes', []))) {
                         $changes[$attribute] = [$original[$attribute] ?? null, $value];
                     }
                 }

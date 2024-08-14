@@ -50,4 +50,12 @@ return [
     'models' => [
         'line' => App\Models\Campaign::class,
     ],
+
+    /**
+     * Define excluded attributes for Auditable models
+     *
+     */
+    'excluded_attributes' => [
+        'updated_at'
+    ],
 ];

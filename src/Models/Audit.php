@@ -93,7 +93,7 @@ class Audit extends Model
                 EventType::RELATION_UPDATED,
                 EventType::RELATION_DELETED,
             ])
-            ->when($relation, fn ($query) => $query->where('related_type', $relation))
+            ->when($relation, fn($query) => $query->where('related_type', 'App\Models\\' . $relation))
             ->when($attribute, fn ($query) => $query->whereJsonContains('index', $attribute));
     }
 
