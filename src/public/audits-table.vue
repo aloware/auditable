@@ -354,7 +354,7 @@ export default {
             if (this.loading) {
                 return
             }
-            delete this.filter.page
+            delete this.filters.page
 
             this.getAudits(this.pagination.next_page_url)
         },
@@ -364,7 +364,7 @@ export default {
             if (this.loading) {
                 return
             }
-            delete this.filter.page
+            delete this.filters.page
             this.getAudits(this.pagination.prev_page_url)
         },
 
