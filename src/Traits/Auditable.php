@@ -144,6 +144,7 @@ trait Auditable
         $attributes = array_intersect_key($model->getAttributes(), $auditable_attributes_as_keys);
         $modified = array_intersect_key($model->getDirty(), $auditable_attributes_as_keys);
         $original = array_intersect_key($model->getRawOriginal(), $auditable_attributes_as_keys);
+        $changes = [];
 
         switch ($event_type) {
             case EventType::MODEL_CREATED:
@@ -171,7 +172,7 @@ trait Auditable
             return [];
         }
 
-        return $changes ?? [];
+        return $changes;
     }
 
     /**
