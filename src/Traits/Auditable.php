@@ -172,7 +172,7 @@ trait Auditable
             return [];
         }
 
-        return $changes ?? [];
+        return $changes;
     }
 
     /**
