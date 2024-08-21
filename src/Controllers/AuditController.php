@@ -5,9 +5,6 @@ namespace Aloware\Auditable\Controllers;
 use Aloware\Auditable\Enums\EventType;
 use Exception;
 use Illuminate\Http\Request;
-use App\Models\RingGroup;
-use App\Models\User;
-use App\Models\Ivr;
 
 class AuditController
 {
@@ -46,85 +43,9 @@ class AuditController
             ->when($to, fn ($query) => $query->where('created_at', '<=', $to))
             ->paginate(config('auditable.per_page'));
 
-        $data->transform(function ($audit) {
-            $this->transformRingGroups($audit);
-            $this->transformUsers($audit);
-            $this->transformIvrs($audit);
-            return $audit;
-        });
+        $model_class::postLoadAudits($data);
 
         return response()->json($data);
     }
 
-    private function transformRingGroups($audit)
-    {
-        if (isset($audit->changes['ring_group_id'])) {
-            $ringGroupIds = $audit->changes['ring_group_id'];
-
-            if (!is_array($ringGroupIds)) {
-                $ringGroupIds = [$ringGroupIds];
-            }
-
-            $ringGroupIds = array_filter($ringGroupIds, fn($id) => !is_null($id));
-
-            $ringGroups = RingGroup::whereIn('id', $ringGroupIds)->pluck('name', 'id');
-
-            $changes = $audit->getAttribute('changes');
-
-            $changes['ring_group_id'] = array_map(function($id) use ($ringGroups) {
-                return $ringGroups[$id] . " (#$id)" ?? "Unknown RingGroup #$id";
-            }, $ringGroupIds);
-
-            $audit->setAttribute('changes', $changes);
-        }
-    }
-
-    private function transformUsers($audit)
-    {
-        if (isset($audit->changes['user_id'])) {
-            $usersIds = $audit->changes['user_id'];
-
-            if (!is_array($usersIds)) {
-                $usersIds = [$usersIds];
-            }
-
-            $usersIds = array_filter($usersIds, fn($id) => !is_null($id));
-            $users    = User::whereIn('id', $usersIds)->get(['id', 'first_name', 'last_name']);
-
-            $users = $users->mapWithKeys(function($user) {
-                return [$user->id => $user->first_name . ' ' . $user->last_name];
-            });
-
-            $changes = $audit->getAttribute('changes');
-
-            $changes['user_id'] = array_map(function($id) use ($users) {
-                return $users[$id] . " (#$id)" ?? "Unknown User #$id";
-            }, $usersIds);
-
-            $audit->setAttribute('changes', $changes);
-        }
-    }
-
-    private function transformIvrs($audit)
-    {
-        if (isset($audit->changes['ivr_id'])) {
-            $ivrsIds = $audit->changes['ivr_id'];
-
-            if (!is_array($ivrsIds)) {
-                $ivrsIds = [$ivrsIds];
-            }
-
-            $ivrsIds = array_filter($ivrsIds, fn($id) => !is_null($id));
-
-            $ivrs    = Ivr::whereIn('id', $ivrsIds)->pluck('name', 'id');
-
-            $changes = $audit->getAttribute('changes');
-
-            $changes['ivr_id'] = array_map(function($id) use ($ivrs) {
-                return $ivrs[$id] . " (#$id)" ?? "Unknown Ivr #$id";
-            }, $ivrsIds);
-
-            $audit->setAttribute('changes', $changes);
-        }
-    }
 }
