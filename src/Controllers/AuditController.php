@@ -7,6 +7,7 @@ use Exception;
 use Illuminate\Http\Request;
 use App\Models\RingGroup;
 use App\Models\User;
+use App\Models\Ivr;
 
 class AuditController
 {
@@ -48,6 +49,7 @@ class AuditController
         $data->transform(function ($audit) {
             $this->transformRingGroups($audit);
             $this->transformUsers($audit);
+            $this->transformIvrs($audit);
             return $audit;
         });
 
@@ -98,6 +100,29 @@ class AuditController
             $changes['user_id'] = array_map(function($id) use ($users) {
                 return $users[$id] . " (#$id)" ?? "Unknown User #$id";
             }, $usersIds);
+
+            $audit->setAttribute('changes', $changes);
+        }
+    }
+
+    private function transformIvrs($audit)
+    {
+        if (isset($audit->changes['ivr_id'])) {
+            $ivrsIds = $audit->changes['ivr_id'];
+
+            if (!is_array($ivrsIds)) {
+                $ivrsIds = [$ivrsIds];
+            }
+
+            $ivrsIds = array_filter($ivrsIds, fn($id) => !is_null($id));
+
+            $ivrs    = Ivr::whereIn('id', $ivrsIds)->pluck('name', 'id');
+
+            $changes = $audit->getAttribute('changes');
+
+            $changes['ivr_id'] = array_map(function($id) use ($ivrs) {
+                return $ivrs[$id] . " (#$id)" ?? "Unknown Ivr #$id";
+            }, $ivrsIds);
 
             $audit->setAttribute('changes', $changes);
         }

@@ -103,8 +103,8 @@
                                         <div><strong>Attribute</strong>: {{ attribute }}</div>
 
                                         <template v-if="change && change.constructor === Array">
-                                            <div><strong>Before</strong>: {{change[0] === null ? 'null' : change[0]}}</div>
-                                            <div><strong>After</strong>: {{change[1] === null ? 'null' : change[1]}}</div>
+                                            <div><strong>Before</strong>: {{change[0] ? change[0] : 'None'}}</div>
+                                            <div><strong>After</strong>: {{change[1] ? change[1] : 'None'}}</div>
                                         </template>
 
                                         <div v-else><strong>Value</strong>: {{ change }}</div>
