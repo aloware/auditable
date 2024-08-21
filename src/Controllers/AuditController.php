@@ -47,6 +47,5 @@ class AuditController
 
         return response()->json($data);
     }
-
 }
 
