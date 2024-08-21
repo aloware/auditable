@@ -165,8 +165,10 @@ trait Auditable
                 foreach ($modified as $attribute => $value) {
                     $original_value = $original[$attribute] ?? null;
 
-                    if ($this->shouldAuditChange($attribute, $original_value, $value) &&
-                        !in_array($attribute, $excluded_attributes)) {
+                    if (
+                        $this->shouldAuditChange($attribute, $original_value, $value)
+                        && !in_array($attribute, $excluded_attributes)
+                    ) {
                         $changes[$attribute] = [$original_value, $value];
                     }
                 }
