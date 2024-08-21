@@ -7,6 +7,7 @@ use Aloware\Auditable\Models\Audit;
 use Exception;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Throwable;
@@ -189,11 +190,17 @@ trait Auditable
         return true;
     }
 
+    /**
+     * A "touch event" is an event where only the updated_at attribute is changed.
+     */
     private function eventIsTouch(array $changes): bool
     {
         return array_keys($changes) === ['updated_at'];
     }
 
+    /**
+     * Whether to ignore changes that only affect the `updated_at` attribute.
+     */
     private function ignoreTouchEvent(): bool
     {
         return !($this->auditTouch ?? config('auditable.audit_touch'));
@@ -211,5 +218,12 @@ trait Auditable
                 'exception' => $e,
             ]);
         }
+    }
+
+    /**
+     * Override in Auditable model to post-load data before being sent to the UI.
+     */
+    public static function postLoadAudits(LengthAwarePaginator $data): void
+    {
     }
 }
