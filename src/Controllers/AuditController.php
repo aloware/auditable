@@ -43,6 +43,9 @@ class AuditController
             ->when($to, fn ($query) => $query->where('created_at', '<=', $to))
             ->paginate(config('auditable.per_page'));
 
+        $model_class::postLoadAudits($data);
+
         return response()->json($data);
     }
 }
+
