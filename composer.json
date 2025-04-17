@@ -4,7 +4,7 @@
     "type": "library",
     "require": {
         "php": "^8.1 || ^8.2",
-        "illuminate/support": "^9|^10|^11"
+        "illuminate/support": "^9|^10|^11|^12"
     },
     "license": "Proprietary",
     "autoload": {
