@@ -57,6 +57,9 @@ trait Auditable
         return $this->auditable ?? array_keys($this->getAttributes());
     }
 
+    /**
+     * @throws Exception
+     */
     public function auditRelation(EventType $event_type, Model $related, string $label = 'relation-audit'): ?Audit
     {
         if (!in_array($event_type, [EventType::RELATION_CREATED, EventType::RELATION_UPDATED, EventType::RELATION_DELETED])) {
@@ -83,8 +86,13 @@ trait Auditable
                 'exception' => $e,
             ]);
         }
+
+        return null;
     }
 
+    /**
+     * @throws Exception
+     */
     public function audit(string $property, $before, $after, string $label = 'custom-audit', bool $property_must_exist = true): ?Audit
     {
         if ($property_must_exist && !array_key_exists($property, $this->getAttributes())) {
@@ -125,6 +133,8 @@ trait Auditable
                 'exception' => $e,
             ]);
         }
+
+        return null;
     }
 
     /**
