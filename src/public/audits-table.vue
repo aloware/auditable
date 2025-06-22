@@ -313,7 +313,7 @@ export default {
         },
 
         getAudits(url = null) {
-            url = url || '/api/audits/line/' + this.model_id
+            url = url || '/api/audits/' + this.model_alias + '/' + this.model_id
 
             this.source.cancel('getAudits canceled by the user.')
             this.source = this.CancelToken.source()
