@@ -49,6 +49,7 @@ return [
      */
     'models' => [
         'line' => App\Models\Campaign::class,
+        'ring_group' => App\Models\RingGroup::class,
     ],
 
     /**
