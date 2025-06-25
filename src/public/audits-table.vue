@@ -4,8 +4,7 @@
             <div class="col-md-6">
                 <span class="page-anchor"
                         id="cnam_caller_id">
-                </span>
-                <h2 class="mb-2"><slot></slot></h2>
+                </span><slot></slot>
             </div>
         </div>
 
