@@ -4,8 +4,7 @@
             <div class="col-md-6">
                 <span class="page-anchor"
                         id="cnam_caller_id">
-                </span>
-                <h2 class="mb-2"><slot></slot></h2>
+                </span><slot></slot>
             </div>
         </div>
 
@@ -422,7 +421,8 @@ export default {
           if (result) {
             interpreted = {
               ...result,
-              text: this.evaluateExpression(result.text, {audit})
+              text: this.evaluateExpression(result.text, {audit}),
+              icon: result.icon && result.icon.includes('`') ? this.evaluateExpression(result.icon, {audit}) : result.icon
             }
 
             return [interpreted]
@@ -436,7 +436,8 @@ export default {
           if (result) {
             interpreted = {
               ...result,
-              text: this.evaluateExpression(result.text, {audit})
+              text: this.evaluateExpression(result.text, {audit}),
+              icon: result.icon && result.icon.includes('`') ? this.evaluateExpression(result.icon, {audit}) : result.icon
             }
 
             return [interpreted]
@@ -464,7 +465,8 @@ export default {
           if (result) {
             interpreted = {
               ...result,
-              text: this.evaluateExpression(result.text, {audit, change, attribute})
+              text: this.evaluateExpression(result.text, {audit, change, attribute}),
+              icon: result.icon && result.icon.includes('`') ? this.evaluateExpression(result.icon, {audit, change, attribute}) : result.icon
             }
 
             return interpreted
@@ -474,7 +476,8 @@ export default {
             if (result) {
               interpreted = {
                 ...result,
-                text: this.evaluateExpression(result.text, {audit, change, attribute})
+                text: this.evaluateExpression(result.text, {audit, change, attribute}),
+                icon: result.icon && result.icon.includes('`') ? this.evaluateExpression(result.icon, {audit, change, attribute}) : result.icon
               }
 
               return interpreted
