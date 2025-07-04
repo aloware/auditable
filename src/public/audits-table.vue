@@ -167,7 +167,7 @@
                 data-testid="audits-table-column"
                 width="240">
                 <template v-slot="scope">
-                    <span class="text-greyish">{{ scope.row.created_at | fixDateTimeCompanyTimeZone }}</span>
+                    <span class="text-greyish">{{ scope.row.created_at | fixDateTime }}</span>
                 </template>
             </el-table-column>
 
