@@ -5,6 +5,21 @@
 The main UI Vue Component will be included in the following version (for TEL-360). You may skip any
 documentation referring to the UI in this file, for now.
 
+### Requirements
+
+| Package version | PHP         | Laravel  |
+|-----------------|-------------|----------|
+| current         | 8.2 – 8.5   | 12, 13   |
+
+Laravel 13 requires PHP 8.3 or newer, so Composer resolves Laravel 12 on PHP 8.2
+and Laravel 13 on PHP 8.3+. Support for Laravel 9, 10 and 11 was dropped once
+those releases stopped receiving upstream security fixes.
+
+The framework constraint is `^12.61.1 || ^13.12.0`. Those are the lowest patch
+releases without known advisories, so the package cannot be installed onto a
+framework version carrying the signed-URL path confusion or CRLF injection
+issues.
+
 ### Install
 
 ```
@@ -27,7 +42,7 @@ To make Eloquent Models auditable, simply add the Auditable Trait to the Model:
 ```php
 namespace App\Models;
 
-use Aloware\Auditable\Traits;
+use Aloware\Auditable\Traits\Auditable;
 use Illuminate\Database\Eloquent\Model;
 
 class Company extends Model
@@ -294,3 +309,58 @@ Requires the following attributes:
     Object containing the 'from' and 'to' parameters that are updated by the date picker
 
  
+### Behaviour notes
+
+These are non-obvious behaviours of the current implementation, each covered by
+a test in `tests/`.
+
+- **Models reachable through the audits endpoint must use `SoftDeletes`.**
+  `AuditController` eager-loads the `user`, `auditable` and `related` relations
+  with `withTrashed()`. A model without the `SoftDeletes` trait has no
+  `withTrashed()` method, so the request fails. This applies to the
+  authenticatable model in `auditable.user_model`, every model listed in
+  `auditable.models`, and any model passed to `auditRelation()`.
+
+- **`audit_touch` only takes effect if `updated_at` is not excluded.** A touch
+  changes nothing but `updated_at`, and `auditable.excluded_attributes` ships
+  containing `updated_at`, which removes that change before the touch is
+  detected. To audit touches, set `audit_touch => true` *and* drop `updated_at`
+  from `excluded_attributes`. For the same reason a model declaring an
+  `$auditable` list that omits `updated_at` never audits touches.
+
+- **Only loaded attributes are audited.** `auditableAttributes()` reads the
+  model's currently loaded attributes, so a column left at its database default
+  on create is absent from the audit until the model is refreshed.
+
+- **`route_prefix` and `route_middleware` are read while the ServiceProvider
+  boots.** Changing them at runtime has no effect on already-registered routes.
+
+- **`Audit::$event_type` is cast to the `EventType` enum.** Reading it always
+  gives an `EventType`, whether the instance was just written or loaded from the
+  database. It is still stored and serialised as its backing string, so API
+  payloads are unchanged. In PHP, compare against the enum case
+  (`$audit->event_type === EventType::MODEL_UPDATED`) rather than the string.
+
+- **`audits.user_id` has no foreign key, on purpose.** Audits outlive the users
+  they are attributed to, so orphaned `user_id` values are expected and a
+  constraint would either reject them or force the attribution to be discarded.
+  `createAudit()` also logs and swallows write failures, so a constraint
+  violation would silently drop audits rather than surface. The column is
+  `unsigned integer` to match `users.id`, and is indexed for the
+  `modifiedByUser` scope.
+
+- **`withModifiedRelation()` assumes the `App\Models` namespace.** The scope
+  prefixes the relation name with `App\Models\`, so related models living in
+  another namespace cannot be matched by name.
+
+### Development
+
+```
+composer install     # install dependencies
+composer test        # run the PHPUnit suite
+composer lint        # run PHPStan (larastan)
+composer audit       # check dependencies for known vulnerabilities
+```
+
+Tests run against the full supported matrix in CI (see
+`.github/workflows/tests.yml`).

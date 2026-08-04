@@ -8,6 +8,13 @@
 npm-debug.log
 yarn-error.log
 
+# Tooling caches and build output
+.phpunit.result.cache
+/.phpunit.cache/
+/.phpstan.cache/
+/build/
+/coverage/
+
 # Editor directories and files
 .idea
 *.suo

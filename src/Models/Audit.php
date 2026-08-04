@@ -24,6 +24,7 @@ class Audit extends Model
     protected $guarded = [];
 
     protected $casts = [
+        'event_type' => EventType::class,
         'changes' => 'json',
         'index' => 'json',
     ];

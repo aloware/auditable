@@ -1,0 +1,35 @@
+includes:
+    - vendor/larastan/larastan/extension.neon
+
+parameters:
+    level: 5
+    paths:
+        - src
+        - database
+        # Included so the Auditable trait is analysed in the context of a
+        # consuming model rather than reported as unused.
+        - workbench/app
+
+    ignoreErrors:
+        # The Auditable models are resolved from `config('auditable.models')`, so
+        # the concrete class is only known at runtime. There is no Auditable
+        # *interface* to type against (auditing is provided by a trait), so the
+        # trait's methods cannot be proven to exist on the resolved model.
+        # Introducing a contract that consuming models implement would let these
+        # be checked properly, at the cost of a change in every host model.
+        -
+            identifier: method.notFound
+            message: '#Call to an undefined method .*::audits\(\)#'
+            path: src/Controllers/AuditController.php
+        -
+            identifier: staticMethod.notFound
+            message: '#Call to an undefined static method .*::postLoadAudits\(\)#'
+            path: src/Controllers/AuditController.php
+
+        # `$auditable` and `$auditTouch` are optional hooks that a consuming
+        # model may declare; the `??` fallback is what makes them optional. They
+        # cannot be declared on the trait itself, because a model redeclaring an
+        # inherited trait property with a different type is a PHP fatal error.
+        -
+            identifier: nullCoalesce.property
+            path: src/Traits/Auditable.php

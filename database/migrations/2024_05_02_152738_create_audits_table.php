@@ -22,7 +22,18 @@ return new class extends Migration
             $table->longText('changes');
             $table->string('label')->nullable()->index();
             $table->json('index')->nullable();
-            $table->integer('user_id')->nullable()->constrained(config('auditable.user_table'));
+
+            /*
+             * Matches the `int unsigned` primary key of the users table, and is
+             * indexed because the modifiedByUser scope filters on it.
+             *
+             * Deliberately not a foreign key: an audit must outlive the user it
+             * is attributed to, and createAudit() logs and swallows write
+             * failures, so a constraint violation would silently discard audits
+             * instead of surfacing.
+             */
+            $table->unsignedInteger('user_id')->nullable()->index();
+
             $table->timestamps();
         });
     }
@@ -34,6 +45,7 @@ return new class extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('audits');
+        // Must mirror up(), which honours the configured table name.
+        Schema::dropIfExists(config('auditable.audits_table'));
     }
 };

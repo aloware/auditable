@@ -5,11 +5,13 @@ namespace Aloware\Auditable\Controllers;
 use Aloware\Auditable\Enums\EventType;
 use Exception;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 class AuditController
 {
     public function index(Request $request, string $model, $id)
     {
+        /** @var class-string<\Illuminate\Database\Eloquent\Model>|null $model_class */
         $model_class = config('auditable.models')[$model] ?? null;
 
         if (!$model_class) {
@@ -19,12 +21,27 @@ class AuditController
         $user = $request->get('user_id');
         $type = $request->get('type');
         $label = $request->get('label');
+        $event_type = $type ? EventType::strToEventType($type) : null;
+
+        // An unrecognised type would otherwise reach byType() as null and fail
+        // its EventType argument type, surfacing as a 500.
+        if ($type && !$event_type) {
+            throw ValidationException::withMessages([
+                'type' => 'Unknown audit event type [' . $type . '].',
+            ]);
+        }
+
         $attribute = $request->get('attribute');
         $relation = $request->get('relation');
         $from = $request->get('from');
         $to = $request->get('to');
 
-        /** @var \Illuminate\Database\Eloquent\Builder $builder */
+        /**
+         * The alias is resolved from config, so the concrete Auditable model is
+         * only known at runtime; audits() yields its Audit morph relation.
+         *
+         * @var \Illuminate\Database\Eloquent\Relations\MorphMany<\Aloware\Auditable\Models\Audit, \Illuminate\Database\Eloquent\Model> $builder
+         */
         $builder = $model_class::findOrFail($id)->audits();
 
         $data = $builder
@@ -35,7 +52,7 @@ class AuditController
                 'related' => fn ($q) => $q->withTrashed()->withoutGlobalScopes()
             ])
             ->when($user, fn ($query) => $query->modifiedByUser($user))
-            ->when($type, fn ($query) => $query->byType(EventType::strToEventType($type)))
+            ->when($event_type, fn ($query) => $query->byType($event_type))
             ->when($label, fn ($query) => $query->byLabel($label))
             ->when($attribute && is_null($relation), fn ($query) => $query->withModified($attribute))
             ->when($relation, fn ($query) => $query->withModifiedRelation($relation, $attribute))
