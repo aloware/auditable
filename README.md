@@ -12,13 +12,7 @@ documentation referring to the UI in this file, for now.
 | current         | 8.2 – 8.5   | 12, 13   |
 
 Laravel 13 requires PHP 8.3 or newer, so Composer resolves Laravel 12 on PHP 8.2
-and Laravel 13 on PHP 8.3+. Support for Laravel 9, 10 and 11 was dropped once
-those releases stopped receiving upstream security fixes.
-
-The framework constraint is `^12.61.1 || ^13.12.0`. Those are the lowest patch
-releases without known advisories, so the package cannot be installed onto a
-framework version carrying the signed-URL path confusion or CRLF injection
-issues.
+and Laravel 13 on PHP 8.3+.
 
 ### Install
 
