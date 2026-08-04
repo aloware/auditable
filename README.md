@@ -5,6 +5,19 @@
 The main UI Vue Component will be included in the following version (for TEL-360). You may skip any
 documentation referring to the UI in this file, for now.
 
+### Requirements
+
+| Package version | PHP         | Laravel  |
+|-----------------|-------------|----------|
+| current         | 8.2 – 8.5   | 12, 13   |
+
+Laravel 13 requires PHP 8.3 or newer, so Composer resolves Laravel 12 on PHP 8.2
+and Laravel 13 on PHP 8.3+.
+
+The audits endpoint eager-loads with `withTrashed()`, so the `user_model`, every
+Model in `models`, and any Model passed to `auditRelation()` must use
+`SoftDeletes`.
+
 ### Install
 
 ```
@@ -27,7 +40,7 @@ To make Eloquent Models auditable, simply add the Auditable Trait to the Model:
 ```php
 namespace App\Models;
 
-use Aloware\Auditable\Traits;
+use Aloware\Auditable\Traits\Auditable;
 use Illuminate\Database\Eloquent\Model;
 
 class Company extends Model
@@ -65,7 +78,9 @@ The default configuration should be enough for standard Laravel applications. If
 /**
  * Model touches may add a lot of unnecessary noise, so they're ignored by default. Set it to true
  * if you prefer to audit them.
- * NOTE: a touch is defined as an atomic change to the `updated_at` attribute.
+ * NOTE: a touch is defined as an atomic change to the `updated_at` attribute. Since that is the only
+ * change a touch makes, `updated_at` must also be removed from `excluded_attributes` below, or this
+ * setting has no effect.
  */
 'audit_touch' => false,
 
@@ -104,11 +119,13 @@ The Audit model contains the following fields:
 - morph columns:
   - string `auditable_type`: the fully-qualified class name of the audited Model
   - bigint `auditable_id`: the id of the audited Model
-- enum `event_type`: see the EventType Enum for possible values
+- enum `event_type`: see the EventType Enum for possible values. Cast to `EventType` when read in PHP;
+  stored and serialised as its backing string, so JSON responses are unaffected
 - longtext `changes`: summary of audited changes (more info below)
 - string `label`: an optional label to identify this type of audit (`self-audit` when automatically generated)
 - json `index`: this is an array of affected attributes' names present in `changes`, to simplify filtering/searching
-- integer `user_id`: the ID of the authenticated user who performed the audited change
+- unsigned integer `user_id`: the ID of the authenticated user who performed the audited change. Not a
+  foreign key, so audits outlive the users they are attributed to
 - standard timestamps:
   - timestamp `created_at`
   - timestamp `updated_at`
@@ -140,7 +157,8 @@ The Auditable Trait exposes the following API:
   - Example: Role::first()->audits // Returns a list of Audit instances for the Role Model
 
 - `Auditable@auditableAttributes(): array`
-  - By default, all of the Model's attributes are auditable
+  - By default, all of the Model's currently loaded attributes are auditable (a column left at its
+    database default on create is absent until the Model is refreshed)
   - You may customize which attributes should be audited, in one of two possible ways:
     - Create a property `auditable` in the Model, which is an array of attribute names
     - Or, if you need more control or there is logic required to define what's auditable:
@@ -294,3 +312,12 @@ Requires the following attributes:
     Object containing the 'from' and 'to' parameters that are updated by the date picker
 
  
+### Development
+
+```
+composer test     # PHPUnit suite
+composer lint     # PHPStan (larastan)
+composer audit    # dependency vulnerability check
+```
+
+CI runs these against the full PHP and Laravel matrix.

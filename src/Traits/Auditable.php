@@ -22,20 +22,22 @@ trait Auditable
     public static function bootAuditable(): void
     {
         static::created(
-            fn (Model $model) => self::selfAudit($model, EventType::MODEL_CREATED)
+            fn (self $model) => self::selfAudit($model, EventType::MODEL_CREATED)
         );
 
         static::updated(
-            fn (Model $model) => self::selfAudit($model, EventType::MODEL_UPDATED)
+            fn (self $model) => self::selfAudit($model, EventType::MODEL_UPDATED)
         );
 
         static::deleted(
-            fn (Model $model) => self::selfAudit($model, EventType::MODEL_DELETED)
+            fn (self $model) => self::selfAudit($model, EventType::MODEL_DELETED)
         );
     }
 
     /**
      * Define the relationship from an Auditable model to its Audits.
+     *
+     * @return MorphMany<Audit, $this>
      */
     public function audits(): MorphMany
     {
@@ -146,7 +148,7 @@ trait Auditable
     private function createAuditableChangesList(EventType $event_type, Model $model): array
     {
         // Consider only auditable fields (all attributes for non-Auditable relations)
-        $is_model_auditable = method_exists($model, 'auditableAttributes') && is_callable([$model, 'auditableAttributes']);
+        $is_model_auditable = method_exists($model, 'auditableAttributes');
 
         $auditable_attributes_as_keys = array_flip(
             $is_model_auditable ? $model->auditableAttributes() : array_keys($model->getAttributes())
@@ -218,7 +220,7 @@ trait Auditable
         return !($this->auditTouch ?? config('auditable.audit_touch'));
     }
 
-    private static function selfAudit(Model $model, EventType $event_type): void
+    private static function selfAudit(self $model, EventType $event_type): void
     {
         try {
             $model->createSelfAudit($event_type);
