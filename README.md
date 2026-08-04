@@ -14,6 +14,10 @@ documentation referring to the UI in this file, for now.
 Laravel 13 requires PHP 8.3 or newer, so Composer resolves Laravel 12 on PHP 8.2
 and Laravel 13 on PHP 8.3+.
 
+The audits endpoint eager-loads with `withTrashed()`, so the `user_model`, every
+Model in `models`, and any Model passed to `auditRelation()` must use
+`SoftDeletes`.
+
 ### Install
 
 ```
@@ -74,7 +78,9 @@ The default configuration should be enough for standard Laravel applications. If
 /**
  * Model touches may add a lot of unnecessary noise, so they're ignored by default. Set it to true
  * if you prefer to audit them.
- * NOTE: a touch is defined as an atomic change to the `updated_at` attribute.
+ * NOTE: a touch is defined as an atomic change to the `updated_at` attribute. Since that is the only
+ * change a touch makes, `updated_at` must also be removed from `excluded_attributes` below, or this
+ * setting has no effect.
  */
 'audit_touch' => false,
 
@@ -113,11 +119,13 @@ The Audit model contains the following fields:
 - morph columns:
   - string `auditable_type`: the fully-qualified class name of the audited Model
   - bigint `auditable_id`: the id of the audited Model
-- enum `event_type`: see the EventType Enum for possible values
+- enum `event_type`: see the EventType Enum for possible values. Cast to `EventType` when read in PHP;
+  stored and serialised as its backing string, so JSON responses are unaffected
 - longtext `changes`: summary of audited changes (more info below)
 - string `label`: an optional label to identify this type of audit (`self-audit` when automatically generated)
 - json `index`: this is an array of affected attributes' names present in `changes`, to simplify filtering/searching
-- integer `user_id`: the ID of the authenticated user who performed the audited change
+- unsigned integer `user_id`: the ID of the authenticated user who performed the audited change. Not a
+  foreign key, so audits outlive the users they are attributed to
 - standard timestamps:
   - timestamp `created_at`
   - timestamp `updated_at`
@@ -149,7 +157,8 @@ The Auditable Trait exposes the following API:
   - Example: Role::first()->audits // Returns a list of Audit instances for the Role Model
 
 - `Auditable@auditableAttributes(): array`
-  - By default, all of the Model's attributes are auditable
+  - By default, all of the Model's currently loaded attributes are auditable (a column left at its
+    database default on create is absent until the Model is refreshed)
   - You may customize which attributes should be audited, in one of two possible ways:
     - Create a property `auditable` in the Model, which is an array of attribute names
     - Or, if you need more control or there is logic required to define what's auditable:
@@ -303,91 +312,12 @@ Requires the following attributes:
     Object containing the 'from' and 'to' parameters that are updated by the date picker
 
  
-### Upgrading to 1.4.0
-
-**`Audit::$event_type` is now an `EventType` enum, not a string.** This is the
-one change that can reach a host application silently: a host on `^1.0` that
-already runs Laravel 12 or 13 on PHP 8.2+ will pick 1.4.0 up on its next
-`composer update`. Search the host application for string comparisons against
-the column and switch them to enum cases:
-
-```php
-// before
-if ($audit->event_type === 'model_updated') { /* ... */ }
-
-// after
-use Aloware\Auditable\Enums\EventType;
-
-if ($audit->event_type === EventType::MODEL_UPDATED) { /* ... */ }
-```
-
-Anything reading the column out of a JSON response is unaffected: the value is
-still stored and serialised as its backing string, so `event_type` remains
-`"model_updated"` in API payloads and in the bundled Vue component.
-
-The remaining breaking changes cannot reach a host unnoticed, because Composer
-will refuse the upgrade and hold such a host on 1.3.0 instead:
-
-- Laravel 9, 10 and 11 are no longer supported (`^12.61.1 || ^13.12.0`).
-- The PHP floor moved from 8.1 to 8.2.
-
-**Run the migrations.** `2026_08_04_000000_align_audits_user_id_column` converts
-`audits.user_id` to an unsigned integer and adds the index the `modifiedByUser`
-scope needs. It is idempotent, adds no foreign key, and preserves null and
-orphaned `user_id` values.
-
-### Behaviour notes
-
-These are non-obvious behaviours of the current implementation, each covered by
-a test in `tests/`.
-
-- **Models reachable through the audits endpoint must use `SoftDeletes`.**
-  `AuditController` eager-loads the `user`, `auditable` and `related` relations
-  with `withTrashed()`. A model without the `SoftDeletes` trait has no
-  `withTrashed()` method, so the request fails. This applies to the
-  authenticatable model in `auditable.user_model`, every model listed in
-  `auditable.models`, and any model passed to `auditRelation()`.
-
-- **`audit_touch` only takes effect if `updated_at` is not excluded.** A touch
-  changes nothing but `updated_at`, and `auditable.excluded_attributes` ships
-  containing `updated_at`, which removes that change before the touch is
-  detected. To audit touches, set `audit_touch => true` *and* drop `updated_at`
-  from `excluded_attributes`. For the same reason a model declaring an
-  `$auditable` list that omits `updated_at` never audits touches.
-
-- **Only loaded attributes are audited.** `auditableAttributes()` reads the
-  model's currently loaded attributes, so a column left at its database default
-  on create is absent from the audit until the model is refreshed.
-
-- **`route_prefix` and `route_middleware` are read while the ServiceProvider
-  boots.** Changing them at runtime has no effect on already-registered routes.
-
-- **`Audit::$event_type` is cast to the `EventType` enum.** Reading it always
-  gives an `EventType`, whether the instance was just written or loaded from the
-  database. It is still stored and serialised as its backing string, so API
-  payloads are unchanged. In PHP, compare against the enum case
-  (`$audit->event_type === EventType::MODEL_UPDATED`) rather than the string.
-
-- **`audits.user_id` has no foreign key, on purpose.** Audits outlive the users
-  they are attributed to, so orphaned `user_id` values are expected and a
-  constraint would either reject them or force the attribution to be discarded.
-  `createAudit()` also logs and swallows write failures, so a constraint
-  violation would silently drop audits rather than surface. The column is
-  `unsigned integer` to match `users.id`, and is indexed for the
-  `modifiedByUser` scope.
-
-- **`withModifiedRelation()` assumes the `App\Models` namespace.** The scope
-  prefixes the relation name with `App\Models\`, so related models living in
-  another namespace cannot be matched by name.
-
 ### Development
 
 ```
-composer install     # install dependencies
-composer test        # run the PHPUnit suite
-composer lint        # run PHPStan (larastan)
-composer audit       # check dependencies for known vulnerabilities
+composer test     # PHPUnit suite
+composer lint     # PHPStan (larastan)
+composer audit    # dependency vulnerability check
 ```
 
-Tests run against the full supported matrix in CI (see
-`.github/workflows/tests.yml`).
+CI runs these against the full PHP and Laravel matrix.
