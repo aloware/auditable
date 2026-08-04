@@ -59,7 +59,12 @@ jobs:
             --prefer-dist --no-interaction --no-progress
 
       - name: Report the resolved versions
-        run: composer show laravel/framework orchestra/testbench | grep -E '^(name|versions)'
+        # Queried one package at a time: `composer show` with several names
+        # prints a table instead of the per-package detail block.
+        run: |
+          for pkg in laravel/framework orchestra/testbench phpunit/phpunit; do
+            printf '%-24s %s\n' "$pkg" "$(composer show "$pkg" | awk '/^versions/ { print $NF }')"
+          done
 
       - name: Run tests
         run: vendor/bin/phpunit
