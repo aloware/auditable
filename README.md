@@ -309,6 +309,39 @@ Requires the following attributes:
     Object containing the 'from' and 'to' parameters that are updated by the date picker
 
  
+### Upgrading to 1.4.0
+
+**`Audit::$event_type` is now an `EventType` enum, not a string.** This is the
+one change that can reach a host application silently: a host on `^1.0` that
+already runs Laravel 12 or 13 on PHP 8.2+ will pick 1.4.0 up on its next
+`composer update`. Search the host application for string comparisons against
+the column and switch them to enum cases:
+
+```php
+// before
+if ($audit->event_type === 'model_updated') { /* ... */ }
+
+// after
+use Aloware\Auditable\Enums\EventType;
+
+if ($audit->event_type === EventType::MODEL_UPDATED) { /* ... */ }
+```
+
+Anything reading the column out of a JSON response is unaffected: the value is
+still stored and serialised as its backing string, so `event_type` remains
+`"model_updated"` in API payloads and in the bundled Vue component.
+
+The remaining breaking changes cannot reach a host unnoticed, because Composer
+will refuse the upgrade and hold such a host on 1.3.0 instead:
+
+- Laravel 9, 10 and 11 are no longer supported (`^12.61.1 || ^13.12.0`).
+- The PHP floor moved from 8.1 to 8.2.
+
+**Run the migrations.** `2026_08_04_000000_align_audits_user_id_column` converts
+`audits.user_id` to an unsigned integer and adds the index the `modifiedByUser`
+scope needs. It is idempotent, adds no foreign key, and preserves null and
+orphaned `user_id` values.
+
 ### Behaviour notes
 
 These are non-obvious behaviours of the current implementation, each covered by
