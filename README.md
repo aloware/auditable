@@ -18,6 +18,9 @@ The audits endpoint eager-loads with `withTrashed()`, so the `user_model`, every
 Model in `models`, and any Model passed to `auditRelation()` must use
 `SoftDeletes`.
 
+The published `audits-table.vue` imports `dompurify`, so the host app must
+install it.
+
 ### Install
 
 ```
