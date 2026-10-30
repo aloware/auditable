@@ -154,8 +154,8 @@
                     <hr v-if="index > 0"/>
                     <img :src="icons[label.icon]" :alt="label.icon"/>
                     <el-tooltip effect="dark" placement="top">
-                      <template v-slot:content><span v-html="label.text"></span></template>
-                      <span v-html="label.text"></span>
+                      <template v-slot:content><span v-html="sanitizeHtml(label.text)"></span></template>
+                      <span v-html="sanitizeHtml(label.text)"></span>
                     </el-tooltip>
                   </div>
                 </template>
@@ -226,6 +226,7 @@
 }
 </style>
 <script>
+import DOMPurify from "dompurify"
 import * as icons from "./icons"
 export default {
     props: {
@@ -483,6 +484,11 @@ export default {
               return interpreted
             }
           }
+        },
+
+        // Labels interpolate record names and other user input into markup
+        sanitizeHtml(html) {
+            return DOMPurify.sanitize(html || '')
         },
 
         evaluateExpression(expr, context) {
