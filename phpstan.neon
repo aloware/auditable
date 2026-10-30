@@ -25,11 +25,20 @@ parameters:
             identifier: staticMethod.notFound
             message: '#Call to an undefined static method .*::postLoadAudits\(\)#'
             path: src/Controllers/AuditController.php
+        # The eager-loaded models use SoftDeletes, as the README requires. Larastan
+        # 3.13+ no longer resolves that scope through a relation, older versions do.
+        -
+            identifier: method.notFound
+            message: '#Call to an undefined method .*::withTrashed\(\)#'
+            path: src/Controllers/AuditController.php
+            reportUnmatched: false
 
         # `$auditable` and `$auditTouch` are optional hooks that a consuming
         # model may declare; the `??` fallback is what makes them optional. They
         # cannot be declared on the trait itself, because a model redeclaring an
         # inherited trait property with a different type is a PHP fatal error.
+        # Larastan 3.13+ no longer reports these, older versions do.
         -
             identifier: nullCoalesce.property
             path: src/Traits/Auditable.php
+            reportUnmatched: false
